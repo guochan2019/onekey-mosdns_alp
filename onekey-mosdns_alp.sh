@@ -510,9 +510,9 @@ respawn_delay=5
 
 depend() {
     need net
-    # 若与 tailscale 同机部署(remote 上游走 tailnet 100.x), 确保 tailscale 先于 mosdns:
-    # rc-update add tailscale default 在 mosdns 之前执行即可 (default 运行级按依赖排序)
-    # after tailscale
+    # 若与 tailscale 同机部署(remote 上游走 tailnet 100.x), 确保 tailscaled 先于 mosdns:
+    # rc-update add tailscaled default 在 mosdns 之前执行即可 (default 运行级按依赖排序)
+    # after tailscaled
 }
 SERVICEEOF
   chmod +x /etc/init.d/mosdns
