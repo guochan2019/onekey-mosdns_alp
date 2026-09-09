@@ -22,11 +22,10 @@
 # 方式一：一键直达（推荐）
 sh <(wget -qO- https://raw.githubusercontent.com/guochan2019/onekey-mosdns_alp/main/onekey-mosdns_alp.sh)
 
- # 方式二: GitHub 镜像加速(50.1 等直连受限环境用)
-# 方式一：一键直达（推荐）
+# 方式二：GitHub 镜像加速（网关 50.1 等直连受限环境）
 sh <(wget -qO- https://gh-proxy.com/https://raw.githubusercontent.com/guochan2019/onekey-mosdns_alp/main/onekey-mosdns_alp.sh)
 
-# 方式二：gh CLI
+# 方式三：gh CLI
 gh repo clone guochan2019/onekey-mosdns_alp && cd onekey-mosdns_alp
 chmod +x onekey-mosdns_alp.sh && ./onekey-mosdns_alp.sh
 ```
@@ -146,6 +145,8 @@ tail -f /var/log/mosdns/mosdns.log   # 实时日志（config.yaml 已配置 file
 ```
 
 > 服务由 `supervise-daemon` 托管：进程异常退出自动拉起（对齐 systemd `Restart=on-failure`）。若与 tailscale 同机部署（remote 上游走 tailnet 100.x），先执行 `rc-update add tailscaled default` 再装 mosdns，确保依赖顺序。
+
+> **GitHub 下载镜像 fallback（2026-09-09）**：脚本与每周 cron 的 update-mosdns.sh 均已内置 `dl_gh`——顺序 **gh-proxy.com → ghfast.top → 官方垫底**，网关 50.1 等直连受限环境自动走镜像（官方 release 直连实测超时）。版本查询走 api.github.com 直连（gh-proxy 对其 403），失败用内置 FALLBACK 版本号。
 
 ### 升级 / 卸载
 
