@@ -647,7 +647,7 @@ do_upgrade() {
 # =================== 主菜单 ===================
 echo ""
 echo "========================================"
-echo "  mosdns 一键安装/升级/卸载脚本"
+echo "  mosdns 一键安装/升级/卸载脚本 (Alpine)"
 echo "  https://github.com/IrineSistiana/mosdns"
 echo "========================================"
 echo ""
