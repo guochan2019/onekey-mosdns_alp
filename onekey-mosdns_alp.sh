@@ -35,6 +35,17 @@ info()  { echo -e "${GREEN}[INFO]${NC} $1"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 err()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
+# ---------- GitHub 下载带镜像 fallback: 官方直连 → gh-proxy.com → ghfast.top ----------
+# $1 = 完整 URL (github.com / raw.githubusercontent.com), $2 = 输出文件
+dl_gh() {
+  for p in "" "https://gh-proxy.com/" "https://ghfast.top/"; do
+    if wget -q --timeout=20 -O "$2" "${p}$1"; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 # ---------- 检测 root ----------
 if [ "$(id -u)" -ne 0 ]; then
   err "请以 root 用户运行 (当前非 root)"
@@ -104,7 +115,7 @@ do_install() {
   MOSDNS_URL="https://github.com/IrineSistiana/mosdns/releases/download/${MOSDNS_VER}/mosdns-linux-amd64.zip"
   TMPDIR=$(mktemp -d)
   cd "$TMPDIR"
-  wget -q "$MOSDNS_URL" -O mosdns.zip
+  dl_gh "$MOSDNS_URL" mosdns.zip || err "mosdns 下载失败(官方+镜像均不可用)"
   unzip -q mosdns.zip
   install -m 755 mosdns "$BIN"
   chmod +x "$BIN"
@@ -244,10 +255,10 @@ UNPACKEOF
   info "=== 6/9 下载 GEO 数据 ==="
   mkdir -p "$V2RAY_DIR"
   echo -n "  下载 geoip.dat ... "
-  wget -q "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" -O "${V2RAY_DIR}/geoip.dat"
+  dl_gh "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" "${V2RAY_DIR}/geoip.dat" || err "geoip.dat 下载失败"
   echo "done ($(du -h "${V2RAY_DIR}/geoip.dat" | cut -f1))"
   echo -n "  下载 geosite.dat ... "
-  wget -q "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" -O "${V2RAY_DIR}/geosite.dat"
+  dl_gh "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" "${V2RAY_DIR}/geosite.dat" || err "geosite.dat 下载失败"
   echo "done ($(du -h "${V2RAY_DIR}/geosite.dat" | cut -f1))"
 
   info "  --- 解包规则 ---"
@@ -567,6 +578,15 @@ SERVICEEOF
   cat > /opt/mosdns/update-mosdns.sh << 'UPDATEEOF'
 #!/bin/sh
 set -e
+# GitHub 下载带镜像 fallback: 官方直连 → gh-proxy.com → ghfast.top
+dl_gh() {
+  for p in "" "https://gh-proxy.com/" "https://ghfast.top/"; do
+    if wget -q --timeout=20 -O "$2" "${p}$1"; then
+      return 0
+    fi
+  done
+  return 1
+}
 RULE_DIR="/opt/mosdns/rule"
 BIN="/usr/local/bin/mosdns"
 LOG="/var/log/mosdns/update-mosdns.log"
@@ -577,9 +597,9 @@ log "=== 开始更新 ==="
 log "1/2 更新 GEO 数据..."
 V2RAY_DIR="/usr/share/v2ray"
 mkdir -p "$V2RAY_DIR"
-wget -q "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" -O "${V2RAY_DIR}/geoip.dat.new" || { log "  ✗ geoip.dat 下载失败"; exit 1; }
+dl_gh "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" "${V2RAY_DIR}/geoip.dat.new" || { log "  ✗ geoip.dat 下载失败"; exit 1; }
 mv "${V2RAY_DIR}/geoip.dat.new" "${V2RAY_DIR}/geoip.dat"
-wget -q "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" -O "${V2RAY_DIR}/geosite.dat.new" || { log "  ✗ geosite.dat 下载失败"; exit 1; }
+dl_gh "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" "${V2RAY_DIR}/geosite.dat.new" || { log "  ✗ geosite.dat 下载失败"; exit 1; }
 mv "${V2RAY_DIR}/geosite.dat.new" "${V2RAY_DIR}/geosite.dat"
 python3 /opt/mosdns/geoip-unpack.py geosite "${V2RAY_DIR}/geosite.dat" CN              > "${RULE_DIR}/geosite_cn.txt" 2>/dev/null
 python3 /opt/mosdns/geoip-unpack.py geosite "${V2RAY_DIR}/geosite.dat" GEOLOCATION-!CN > "${RULE_DIR}/geosite_geolocation-!cn.txt" 2>/dev/null
@@ -598,7 +618,7 @@ log "  当前版本: ${CURRENT_VER}, 最新版本: ${LATEST_VER}"
 if [ "$CURRENT_VER" != "$LATEST_VER" ] && [ "$LATEST_VER" != "$FALLBACK_VER" ]; then
   log "  发现新版本 ${LATEST_VER}，开始更新..."
   TMPDIR=$(mktemp -d); cd "$TMPDIR"
-  wget -q "https://github.com/IrineSistiana/mosdns/releases/download/${LATEST_VER}/mosdns-linux-amd64.zip" -O mosdns.zip
+  dl_gh "https://github.com/IrineSistiana/mosdns/releases/download/${LATEST_VER}/mosdns-linux-amd64.zip" mosdns.zip || { log "  ✗ mosdns 下载失败"; exit 1; }
   unzip -q mosdns.zip; install -m 755 mosdns "$BIN"; chmod +x "$BIN"; rm -rf "$TMPDIR"
   log "  ✓ 已升级到 ${LATEST_VER}"
 else
@@ -634,7 +654,7 @@ do_upgrade() {
     MOSDNS_URL="https://github.com/IrineSistiana/mosdns/releases/download/${MOSDNS_VER}/mosdns-linux-amd64.zip"
     TMPDIR=$(mktemp -d)
     cd "$TMPDIR"
-    wget -q "$MOSDNS_URL" -O mosdns.zip
+    dl_gh "$MOSDNS_URL" mosdns.zip || err "mosdns 下载失败(官方+镜像均不可用)"
     unzip -q mosdns.zip
     install -m 755 mosdns "$BIN"
     chmod +x "$BIN"
