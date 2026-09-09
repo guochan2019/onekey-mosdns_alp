@@ -22,6 +22,10 @@
 # 方式一：一键直达（推荐）
 sh <(wget -qO- https://raw.githubusercontent.com/guochan2019/onekey-mosdns_alp/main/onekey-mosdns_alp.sh)
 
+ # 方式二: GitHub 镜像加速(50.1 等直连受限环境用)
+# 方式一：一键直达（推荐）
+sh <(wget -qO- https://gh-proxy.com/https://raw.githubusercontent.com/guochan2019/onekey-mosdns_alp/main/onekey-mosdns_alp.sh)
+
 # 方式二：gh CLI
 gh repo clone guochan2019/onekey-mosdns_alp && cd onekey-mosdns_alp
 chmod +x onekey-mosdns_alp.sh && ./onekey-mosdns_alp.sh
