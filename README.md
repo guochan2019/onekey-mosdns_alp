@@ -141,7 +141,7 @@ rc-service mosdns stop         # 停止
 tail -f /var/log/mosdns/mosdns.log   # 实时日志（config.yaml 已配置 file 落盘）
 ```
 
-> 服务由 `supervise-daemon` 托管：进程异常退出自动拉起（对齐 systemd `Restart=on-failure`）。若与 tailscale 同机部署（remote 上游走 tailnet 100.x），先执行 `rc-update add tailscale default` 再装 mosdns，确保依赖顺序。
+> 服务由 `supervise-daemon` 托管：进程异常退出自动拉起（对齐 systemd `Restart=on-failure`）。若与 tailscale 同机部署（remote 上游走 tailnet 100.x），先执行 `rc-update add tailscaled default` 再装 mosdns，确保依赖顺序。
 
 ### 升级 / 卸载
 
