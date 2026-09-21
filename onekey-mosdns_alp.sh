@@ -35,10 +35,10 @@ info()  { echo -e "${GREEN}[INFO]${NC} $1"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 err()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
-# ---------- GitHub 下载带镜像 fallback: 官方直连 → gh-proxy.com → ghfast.top ----------
+# ---------- GitHub 下载带镜像 fallback: gh-proxy.com → ghfast.top → 官方直连 ----------
 # $1 = 完整 URL (github.com / raw.githubusercontent.com), $2 = 输出文件
 dl_gh() {
-  for p in "https://gh-proxy.com/" "https://ghfast.top/" ""; do  # 镜像优先, 官方垫底(50.1 等直连受限场景不白等超时)
+  for p in "https://gh-proxy.com/" "https://ghfast.top/" ""; do  # 镜像优先, 官方垫底(直连受限场景不白等超时)
     if wget -q --timeout=20 -O "$2" "${p}$1"; then
       return 0
     fi
@@ -608,9 +608,9 @@ SERVICEEOF
   cat > /opt/mosdns/update-mosdns.sh << 'UPDATEEOF'
 #!/bin/sh
 set -e
-# GitHub 下载带镜像 fallback: 官方直连 → gh-proxy.com → ghfast.top
+# GitHub 下载带镜像 fallback: gh-proxy.com → ghfast.top → 官方直连
 dl_gh() {
-  for p in "https://gh-proxy.com/" "https://ghfast.top/" ""; do  # 镜像优先, 官方垫底(50.1 等直连受限场景不白等超时)
+  for p in "https://gh-proxy.com/" "https://ghfast.top/" ""; do  # 镜像优先, 官方垫底(直连受限场景不白等超时)
     if wget -q --timeout=20 -O "$2" "${p}$1"; then
       return 0
     fi
