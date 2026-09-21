@@ -4,13 +4,15 @@
 
 - **国内域名分流** → 阿里公共 DNS（默认 223.5.5.5/223.6.6.6，部署时可交互修改）
 - **国外域名分流** → tailnet VPS dnsmasq（部署时交互必填 100.x 上游，隐私不写死仓库）
+- **tailscale 控制面专用解析** → `tailscale.com` 及其子域固定走**国内 DNS**（破解“VPN 注册依赖 DNS、DNS 又依赖 VPN”的死循环；2026-09-21 加）
 - **广告屏蔽** → v2ray 广告规则 + 自定义 blocklist
 - **GEO IP 数据** → 从 geoip.dat 解包国内 CIDR 至 ip_set，支持 IP 级匹配
 - **DNS 缓存** → 内存缓存 + lazy cache + 磁盘持久化
 - **PTR 反查本地裁决** → 内网反查不出网
 - **自动更新** → 每周更新域名规则 + GEO 数据 + mosdns 自身版本
 
-> 功能与 [onekey-mosdns](https://github.com/guochan2019/onekey-mosdns)（Debian 直装版）完全一致（config.yaml / GEO 解包 / 分流逻辑字节级相同），平台层适配 **apk + OpenRC + busybox crond**。部署目录相同（`/opt/mosdns`），Linux Gate 上的现成配置可直接迁移。
+> 功能与 [onekey-mosdns](https://github.com/guochan2019/onekey-mosdns)（Debian 直装版）一致（config.yaml / GEO 解包 / 分流逻辑同源），平台层适配 **apk + OpenRC + busybox crond**。部署目录相同（`/opt/mosdns`），Linux Gate 上的现成配置可直接迁移。
+> **差异**：本版自 2026-09-21 起多一段 `ts_control_plane`（tailscale 控制面走国内 DNS）；Debian 版无 tailscale 远程 DNS 需求，未同步。
 
 ---
 
@@ -90,6 +92,7 @@ chmod +x onekey-mosdns_alp.sh && ./onekey-mosdns_alp.sh
 │   ├── geosite_geolocation-!cn.txt  # 国外域名列表
 │   ├── geosite_category-ads-all.txt # 广告/跟踪域名列表
 │   ├── geoip_cn.txt             # 国内 IP 段列表（CIDR，从 geoip.dat 解包）
+│   ├── ts_control_plane.txt      # tailscale 控制面域名（固定 domain:tailscale.com，勿清空）
 │   ├── whitelist.txt            # 白名单域名（走国内 DNS，可选）
 │   ├── blocklist.txt            # 自定义拦截域名（可选）
 │   └── hosts.txt                # 自定义 hosts 映射（可选）
@@ -116,11 +119,14 @@ chmod +x onekey-mosdns_alp.sh && ./onekey-mosdns_alp.sh
 | 远程 DNS（forward_remote） | 空格分隔纯 IP | **必填**（tailnet VPS dnsmasq 的 100.x，脚本自动加 `udp://` 前缀）；🔴 不写死进仓库 |
 
 > 脚本顶部预设 `LOCAL_DNS_IPS` / `REMOTE_DNS_IPS` 后跳过提问（空 = 交互输入）。
+>
+> 🔴 **例外**：`tailscale.com` 及其子域由 `ts_control_plane` 固定走**国内 DNS**，不走远程 DNS —— 这是 VPN 自举路径（2026-09-21）。
 
 ### 处理流程
 
 ```
 客户端请求 → mosdns :53
+  ├─ tailscale 控制面 → 国内 DNS（tailscale.com 及其子域；破 VPN⇄DNS 死循环）
   ├─ 白名单域名 → 国内 DNS（优先级最高）
   ├─ 广告域名/blocklist → reject (NXDOMAIN)
   ├─ qtype 65 (HTTPS) → reject（减少 QUIC 泄漏）
