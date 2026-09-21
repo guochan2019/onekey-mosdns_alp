@@ -150,7 +150,7 @@ rc-service mosdns stop         # 停止
 tail -f /var/log/mosdns/mosdns.log   # 实时日志（config.yaml 已配置 file 落盘）
 ```
 
-> 服务由 `supervise-daemon` 托管：进程异常退出自动拉起（对齐 systemd `Restart=on-failure`）。若与 tailscale 同机部署（remote 上游走 tailnet 100.x），先执行 `rc-update add tailscaled default` 再装 mosdns，确保依赖顺序。
+> 服务由 `supervise-daemon` 托管：进程异常退出自动拉起（对齐 systemd `Restart=on-failure`）。服务带**就绪等待**（`start_post` 等 `:53` 真正 LISTEN 才算 started），避免 tailscaled 冷启动拿到 `connection refused` 而掉进 DERP 硬编码兜底。若与 tailscale 同机部署（remote 上游走 tailnet 100.x）：default 运行级按名字排序，mosdns 天然先于 tailscaled 启动，无需额外操作。
 
 > **GitHub 下载镜像 fallback（2026-09-09）**：脚本与每周 cron 的 update-mosdns.sh 均已内置 `dl_gh`——顺序 **gh-proxy.com → ghfast.top → 官方垫底**，网关 50.1 等直连受限环境自动走镜像（官方 release 直连实测超时）。版本查询走 api.github.com 直连（gh-proxy 对其 403），失败用内置 FALLBACK 版本号。
 

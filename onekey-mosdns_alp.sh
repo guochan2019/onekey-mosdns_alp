@@ -537,9 +537,23 @@ respawn_delay=5
 
 depend() {
     need net
-    # 若与 tailscale 同机部署(remote 上游走 tailnet 100.x), 确保 tailscaled 先于 mosdns:
-    # rc-update add tailscaled default 在 mosdns 之前执行即可 (default 运行级按依赖排序)
-    # after tailscaled
+    # 与 tailscale 同机部署时, mosdns 必须【先于】tailscaled 启动:
+    # default 运行级按名字排序, mosdns 天然排在 tailscaled 前面, 不需要额外声明
+    # (别给 tailscaled 加 need/after mosdns — 纯 tailscale 机器上那个服务并不存在)
+}
+
+# OpenRC 在 supervise-daemon fork 后立刻把服务标记为 started, 但 mosdns 还要加载规则/缓存才会 bind :53。
+# 不等就绪的话, 同机 tailscaled 冷启动会拿到 "lookup log.tailscale.com on 127.0.0.1:53: connection refused",
+# 从而掉进 DERP 硬编码 IP 兜底(能否注册全看那些 IP 通不通)。
+start_post() {
+    local i=0
+    while [ "$i" -lt 100 ]; do
+        awk '$4=="0A" && index($2,":0035")>0' /proc/net/tcp /proc/net/tcp6 2>/dev/null | grep -q . && return 0
+        i=$((i+1))
+        sleep 0.1
+    done
+    ewarn "mosdns :53 未在 10s 内就绪, 继续启动"
+    return 0
 }
 SERVICEEOF
   chmod +x /etc/init.d/mosdns
